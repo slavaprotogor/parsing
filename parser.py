@@ -11,13 +11,11 @@ WORKER_NUM = 5
 PARSING_DELAY = 0.2
 RETRY = 4
 
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 CATEGORIES_URL = 'https://5ka.ru/api/v2/categories/'
 PRODUCTS_URL = ('https://5ka.ru/api/v2/special_offers/?store=&records_per_page=12&page={page}'
                 '&categories={category}&ordering=&price_promo__gte=&price_promo__lte=&search=')
-
-
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 class Parser:
@@ -127,12 +125,10 @@ class Parser:
 
     def run(self):
         self._logger.info('START')
-
         try:
             self._loop.run_until_complete(parser._run())
         finally:
             self._loop.close()
-
         self._logger.info('DONE')
 
 
