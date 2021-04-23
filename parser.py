@@ -75,7 +75,7 @@ class Parser:
     async def _producer(self, url):
         categories = await self._parser(url)
         for category in categories:
-            await self._q.put(category)
+            self._q.put_nowait(category)
 
     async def _worker(self):
         while True:
