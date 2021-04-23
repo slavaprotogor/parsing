@@ -1,10 +1,11 @@
 import os
 import sys
-import logging
 import json
+import logging
+
 import asyncio
-from aiofile import async_open
 import aiohttp
+from aiofile import async_open
 
 
 WORKER_NUM = 10
