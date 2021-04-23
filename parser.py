@@ -21,18 +21,21 @@ PRODUCTS_URL = ('https://5ka.ru/api/v2/special_offers/?store=&records_per_page=1
 class Parser:
     """ Асинхронный парсер """
 
+    headers_default = {
+        'User-Agent': ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 '
+                       '(KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36')
+    }
+
     def __init__(self, categories_url, products_url, root_dir, headers=None):
         self._categories_url = categories_url
         self._products_url = products_url
         self._root_dir = root_dir
+        self._headers = self.headers_default
 
-        if headers is None:
-            self._headers = {
-                'User-Agent': ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 '
-                               '(KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36')
-            }
-        else:
-            self._headers = headers
+        if headers:
+            if not isinstance(headers, dict):
+                raise TypeError('Parameter "headers" must be a dict')
+            self._headers.update(headers)
 
         self._loop = asyncio.get_event_loop()
         self._q = asyncio.Queue()
