@@ -14,7 +14,7 @@ RETRY = 4
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 CATEGORIES_URL = 'https://5ka.ru/api/v2/categories/'
-PRODUCTS_URL = ('https://5ka.ru/api/v2/special_offers/?store=&records_per_page=12&page={page}'
+PRODUCTS_URL = ('https://5ka.ru/api/v2/special_offers/?store=&records_per_page={per_page}&page={page}'
                 '&categories={category}&ordering=&price_promo__gte=&price_promo__lte=&search=')
 
 
@@ -26,10 +26,11 @@ class Parser:
                        '(KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36')
     }
 
-    def __init__(self, categories_url, products_url, root_dir, headers=None):
+    def __init__(self, categories_url, products_url, root_dir, per_page=20, headers=None):
         self._categories_url = categories_url
         self._products_url = products_url
         self._root_dir = root_dir
+        self._per_page = per_page
         self._headers = self.headers_default
 
         if headers:
@@ -110,6 +111,7 @@ class Parser:
         while True:
             url = self._products_url.format(
                     page=page,
+                    per_page=self._per_page,
                     category=category['parent_group_code'],
                 )
             products = await self._parser(url)
