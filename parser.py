@@ -7,7 +7,7 @@ from aiofile import async_open
 import aiohttp
 
 
-WORKER_NUM = 5
+WORKER_NUM = 10
 PARSING_DELAY = 0.2
 RETRY = 4
 
