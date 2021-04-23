@@ -26,10 +26,19 @@ class Parser:
                        '(KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36')
     }
 
-    def __init__(self, categories_url, products_url, root_dir, per_page=20, headers=None):
+    def __init__(self, categories_url: str, products_url: str,
+                 root_dir: str, per_page: int=20, headers: dict=None):
+
+        if not isinstance(root_dir, str):
+            raise TypeError('Parameter "root_dir" must be a str')
+
+        if not os.path.isdir(root_dir):
+            raise ValueError(f'Parameter "root_dir={root_dir}" dir does not exist')
+
+        self._root_dir = root_dir
+
         self._categories_url = categories_url
         self._products_url = products_url
-        self._root_dir = root_dir
         self._per_page = per_page
         self._headers = self.headers_default
 
