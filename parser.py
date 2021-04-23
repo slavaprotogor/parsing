@@ -9,7 +9,7 @@ from aiofile import async_open
 
 
 WORKER_NUM = 10
-PARSING_DELAY = 0.2
+PARSING_DELAY = 0.1
 RETRY = 4
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -72,8 +72,6 @@ class Parser:
     async def _parser(self, url):
         retry = 1
         while True:
-            await asyncio.sleep(PARSING_DELAY)
-
             async with aiohttp.ClientSession(headers=self._headers) as session:
                 try:
                     async with session.get(url) as response:
@@ -85,6 +83,7 @@ class Parser:
             if retry == RETRY:
                 return []
             retry += 1
+            await asyncio.sleep(PARSING_DELAY)
 
     async def _producer(self, url):
         categories = await self._parser(url)
