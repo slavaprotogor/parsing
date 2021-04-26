@@ -68,7 +68,7 @@ class Parser:
         )
         self._logger.addHandler(handler)
 
-    async def _parser(self, url):
+    async def _request(self, url):
         retry = 1
         while True:
             async with aiohttp.ClientSession(headers=self._headers) as session:
@@ -84,8 +84,8 @@ class Parser:
             retry += 1
             await asyncio.sleep(PARSING_DELAY)
 
-    async def _producer(self, url):
-        categories = await self._parser(url)
+    async def _fetch_categories(self, url):
+        categories = await self._request(url)
         for category in categories:
             self._q.put_nowait(category)
 
@@ -122,14 +122,14 @@ class Parser:
                     per_page=self._per_page,
                     category=category['parent_group_code'],
                 )
-            products = await self._parser(url)
+            products = await self._request(url)
             if not products.get('results'):
                 return products_result
             products_result += products['results']
             page += 1
 
     async def _run(self):
-        await self._producer(self._categories_url)
+        await self._fetch_categories(self._categories_url)
 
         await self._q.join()
 
