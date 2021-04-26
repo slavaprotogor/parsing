@@ -140,6 +140,8 @@ class Parser:
         self._logger.info('START')
         try:
             self._loop.run_until_complete(parser._run())
+        except Exception as e:
+            self._logger.exception('Error: %s', e)
         finally:
             self._loop.close()
         self._logger.info('DONE')
