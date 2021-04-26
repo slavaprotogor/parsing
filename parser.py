@@ -68,6 +68,9 @@ class Parser:
         )
         self._logger.addHandler(handler)
 
+    def _make_dirs(self, path):
+        os.makedirs(path, exist_ok=True)
+
     async def _request(self, url):
         retry = 1
         while True:
@@ -84,32 +87,54 @@ class Parser:
             retry += 1
             await asyncio.sleep(PARSING_DELAY)
 
+    async def _fetch_subcategories(self, category_name, category_code, path):
+        subcategories = await self._request(f'{self._categories_url}{category_code}')
+        if not subcategories:
+            await self._q.put({
+                'name': category_name,
+                'code': category_code,
+                'path': path,
+            })
+        else:
+            path = os.path.join(path, category_name.replace(' ', '_'))
+            for subcategory in subcategories:
+                await self._fetch_subcategories(
+                    subcategory['group_name'],
+                    subcategory['group_code'],
+                    path,
+                )
+
     async def _fetch_categories(self, url):
         categories = await self._request(url)
         for category in categories:
-            self._q.put_nowait(category)
+            await self._fetch_subcategories(
+                category['parent_group_name'],
+                category['parent_group_code'],
+                self._result_dir,
+            )
 
     async def _worker(self):
         while True:
             category = await self._q.get()
-            self._logger.info('%s start!', category)
             products = await self._fetch_products(category)
             await self._write_to_file(category, products)
             self._q.task_done()
-            self._logger.info('%s done!', category)
 
     async def _write_to_file(self, category, products):
-        category_name = category['parent_group_name'].replace(' ', '_')
-        async with async_open(os.path.join(self._result_dir, f'{category_name}.json'), 'w') as afp:
+        category_name = category['name'].replace(' ', '_')
+        await self._loop.run_in_executor(
+            None,
+            self._make_dirs,
+            category['path']
+        )
+        async with async_open(os.path.join(category['path'], f'{category_name}.json'), 'w') as afp:
+            category['products'] = products
+            category.pop('path', None)
             await afp.write(
                 json.dumps(
-                    {
-                        'name': category['parent_group_name'],
-                        'code': category['parent_group_code'],
-                        'products': products,
-                    },
+                    category,
                     ensure_ascii=False,
-                    separators=(',', ':')
+                    separators=(',', ':'),
                 )
             )
 
@@ -120,7 +145,7 @@ class Parser:
             url = self._products_url.format(
                     page=page,
                     per_page=self._per_page,
-                    category=category['parent_group_code'],
+                    category=category['code'],
                 )
             products = await self._request(url)
             if not products.get('results'):
