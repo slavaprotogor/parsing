@@ -56,7 +56,7 @@ class Parser:
 
     def _init_result_dir(self):
         self._result_dir = os.path.join(self._root_dir, 'result')
-        os.makedirs(self._result_dir, exist_ok=True)
+        self._make_dirs(self._result_dir)
 
     def _init_logger(self):
         self._logger = logging.getLogger(self.__class__.__name__)
