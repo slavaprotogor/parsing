@@ -102,11 +102,11 @@ class Parser:
         pg_li = pg_ul.findChildren('li' , recursive=False)[-2]
         count = pg_li.findChildren('a' , recursive=False)[0].getText()
         for page in range(1, int(count) + 1):
-            page_url = f'{self._start_url}?page={page}'
-            page_text = await self._request(page_url)
-            page_soup = BeautifulSoup(page_start, 'html.parser')
+            post_url = f'{self._start_url}?page={page}'
+            post_text = await self._request(post_url)
+            post_soup = BeautifulSoup(post_text, 'html.parser')
             post_links = list(set([self._start_url.replace('/posts/', link['href'])
-                          for link in page_soup.select('div.post-item a:first-child')]))
+                          for link in post_soup.select('div.post-item a:first-child')]))
             await self._q.put(post_links)
 
     async def _fetch_post_data(self, url):
@@ -115,10 +115,10 @@ class Parser:
         post_soup = BeautifulSoup(post_text, 'html.parser')
         return {
             'url': url,
-            #'title': post_soup.select('h1.blogpost-title')[0].text,
-            #'image': post_soup.select('img:first-child')[0]['src'],
-            #'datetime': post_soup.select('.blogpost-date-views time')[0]['datatime'],
-            #'author': post_soup.find('div', {'item': author}).text,
+            'title': post_soup.select('h1.blogpost-title')[0].text,
+            'image': post_soup.select('img:first-child')[0]['src'],
+            'datetime': post_soup.select('.blogpost-date-views time')[0]['datetime'],
+            'author': post_soup.find('div', {'itemprop': 'author'}).text,
         }
 
     async def _save_to_database(self, data: list):
@@ -132,8 +132,8 @@ class Parser:
     async def _worker(self):
         while True:
             post_links = await self._q.get()
-            self._logger.info(post_links)
             data = await asyncio.gather(*[self._fetch_post_data(post_link) for post_link in post_links])
+            self._logger.info('Data: %s', data)
             await self._save_to_database(data)
             self._q.task_done()
             self._logger.info('done!')
