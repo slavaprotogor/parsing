@@ -16,6 +16,7 @@ RETRY = 4
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 START_URL = 'https://gb.ru/posts/'
+COMMENTS_URL = 'https://gb.ru/api/v2/comments?commentable_type=Post&commentable_id={post_id}&order=desc'
 
 
 class Parser:
@@ -30,7 +31,7 @@ class Parser:
     db_name = 'parsing'
     db_collection_name = 'posts'
 
-    def __init__(self, start_url: str, root_dir: str,
+    def __init__(self, start_url: str, comments_url: str, root_dir: str,
                  per_page: int=20, headers: dict=None):
 
         if not isinstance(root_dir, str):
@@ -42,6 +43,7 @@ class Parser:
         self._root_dir = root_dir
 
         self._start_url = start_url
+        self._comments_url = comments_url
         self._per_page = per_page
         self._headers = self.headers_default
 
@@ -109,16 +111,34 @@ class Parser:
                           for link in post_soup.select('div.post-item a:first-child')]))
             await self._q.put(post_links)
 
+    def _comments_str(self, comments):
+        comments_str = ''
+        for comment_dict in comments:
+            for _, comment in comment_dict.items():
+                if comment['children']:
+                    comments_str += self._comments_str(comment['children'])
+                comments_str += f'{comment["user"]["full_name"]}\n{comment["body"]}\n\n'
+        return comments_str
+            
     async def _fetch_post_data(self, url):
         await asyncio.sleep(PARSING_DELAY)
         post_text = await self._request(url)
+
         post_soup = BeautifulSoup(post_text, 'html.parser')
+        post_id = post_soup.find('div', 'referrals-social-buttons-small-wrapper')['data-minifiable-id']
+
+        await asyncio.sleep(PARSING_DELAY)
+        comments_raw = await self._request(self._comments_url.format(post_id=post_id))
+        comments_dict = json.loads(comments_raw)
+
         return {
             'url': url,
             'title': post_soup.select('h1.blogpost-title')[0].text,
             'image': post_soup.select('img:first-child')[0]['src'],
             'datetime': post_soup.select('.blogpost-date-views time')[0]['datetime'],
             'author': post_soup.find('div', {'itemprop': 'author'}).text,
+            'author_url': self._start_url.replace('/posts', post_soup.find('div', {'itemprop': 'author'}).parent['href']),
+            'comments': self._comments_str(comments_dict),
         }
 
     async def _save_to_database(self, data: list):
@@ -133,10 +153,8 @@ class Parser:
         while True:
             post_links = await self._q.get()
             data = await asyncio.gather(*[self._fetch_post_data(post_link) for post_link in post_links])
-            self._logger.info('Data: %s', data)
             await self._save_to_database(data)
             self._q.task_done()
-            self._logger.info('done!')
 
     async def _run(self):
         await self._parse_start(self._start_url)
@@ -161,6 +179,7 @@ if __name__ == '__main__':
 
     parser = Parser(
         START_URL,
+        COMMENTS_URL,
         ROOT_DIR,
     )
     parser.run()
