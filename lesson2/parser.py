@@ -162,7 +162,6 @@ class Parser:
         self._logger.info('DONE')
 
 
-
 if __name__ == '__main__':
 
     parser = Parser(
