@@ -101,7 +101,7 @@ class Parser:
         pg_ul = page_start_soup.find('ul', {'class': 'gb__pagination'})
         pg_li = pg_ul.findChildren('li' , recursive=False)[-2]
         count = pg_li.findChildren('a' , recursive=False)[0].getText()
-        for page in range(1, 3):  # int(count) + 1):
+        for page in range(1, int(count) + 1):
             page_url = f'{self._start_url}?page={page}'
             page_text = await self._request(page_url)
             page_soup = BeautifulSoup(page_start, 'html.parser')
