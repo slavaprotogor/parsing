@@ -73,14 +73,12 @@ class Parser:
 
     def _init_mongo_connection(self):
         try:
-            self._logger.info('start connection to mongodb')
             self._client = motor.motor_asyncio.AsyncIOMotorClient(
                 self.mongodb_connection, io_loop=self._loop)
         except PyMongoError as e:
             self._logger.exception('MongoDB error: %s', e)
         self._db = self._client[self.db_name]
         self._collection = self._db[self.db_collection_name]
-        self._logger.info('done connection to mongodb')
 
     async def _request(self, url):
         retry = 1
@@ -129,16 +127,13 @@ class Parser:
         except PyMongoError as e:
             self._logger.exception('MongoDB error: %s', e)
             raise e
-        self._logger.info('Insert data: %s', len(data))
         return True
 
     async def _worker(self):
         while True:
-            self._logger.info('Worker start!')
             post_links = await self._q.get()
             self._logger.info(post_links)
-            data = await asyncio.gather(*[self._fetch_post_data(post_link) for post_link in post_links[:5]])
-            self._logger.info(data)
+            data = await asyncio.gather(*[self._fetch_post_data(post_link) for post_link in post_links])
             await self._save_to_database(data)
             self._q.task_done()
             self._logger.info('done!')
