@@ -133,7 +133,7 @@ class Parser:
 
         return {
             'url': url,
-            'title': post_soup.select('h1.blogpost-title')[0].text,
+            'title': post_soup.find('h1', 'blogpost-title').text,
             'image': post_soup.select('img:first-child')[0]['src'],
             'datetime': post_soup.select('.blogpost-date-views time')[0]['datetime'],
             'author': post_soup.find('div', {'itemprop': 'author'}).text,
