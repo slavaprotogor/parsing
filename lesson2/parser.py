@@ -106,7 +106,7 @@ class Parser:
             page_url = f'{self._start_url}?page={page}'
             page_text = await self._request(page_url)
             page_soup = BeautifulSoup(page_text, 'html.parser')
-            post_links = [item.find('a')['href']
+            post_links = [self._start_url.replace('/posts', item.find('a')['href'])
                           for item in page_soup.find_all('div', 'post-item event')]
             await self._q.put(post_links)
 
@@ -129,11 +129,11 @@ class Parser:
         await asyncio.sleep(PARSING_DELAY)
         comments_raw = await self._request(self._comments_url.format(post_id=post_id))
         comments_dict = json.loads(comments_raw)
-
+        image = post_soup.find('img')
         return {
             'url': url,
             'title': post_soup.find('h1', 'blogpost-title').text,
-            'image': post_soup.select('img:first-child')[0]['src'],
+            'image': image['src'] if image else None,
             'datetime': post_soup.select('.blogpost-date-views time')[0]['datetime'],
             'author': post_soup.find('div', {'itemprop': 'author'}).text,
             'author_url': self._start_url.replace('/posts', post_soup.find('div', {'itemprop': 'author'}).parent['href']),
