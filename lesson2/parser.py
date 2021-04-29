@@ -152,6 +152,7 @@ class Parser:
     async def _worker(self):
         while True:
             post_links = await self._q.get()
+
             data = []
             for idx, item in enumerate(post_links[::PARSE_CHUNK]):
                 parse_links = post_links[idx * PARSE_CHUNK: (idx + 1) * PARSE_CHUNK]
@@ -159,7 +160,7 @@ class Parser:
                     data_links = await asyncio.gather(*[self._fetch_post_data(parse_link)
                                                         for parse_link in parse_links])
                     data += data_links
-            self._logger.info(data)
+
             await self._save_to_database(data)
             self._q.task_done()
 
