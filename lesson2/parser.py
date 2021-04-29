@@ -100,15 +100,14 @@ class Parser:
     async def _parse_start(self, url):
         page_start = await self._request(url)
         page_start_soup = BeautifulSoup(page_start, 'html.parser')
-        pg_ul = page_start_soup.find('ul', {'class': 'gb__pagination'})
-        pg_li = pg_ul.findChildren('li' , recursive=False)[-2]
-        count = pg_li.findChildren('a' , recursive=False)[0].getText()
-        for page in range(1, int(count) + 1):
-            post_url = f'{self._start_url}?page={page}'
-            post_text = await self._request(post_url)
-            post_soup = BeautifulSoup(post_text, 'html.parser')
-            post_links = list(set([self._start_url.replace('/posts/', link['href'])
-                          for link in post_soup.select('div.post-item a:first-child')]))
+        post_number = page_start_soup.find('ul', 'gb__pagination').\
+                                      find_all('li')[-2].find('a').text
+        for page in range(1, int(post_number) + 1):
+            page_url = f'{self._start_url}?page={page}'
+            page_text = await self._request(page_url)
+            page_soup = BeautifulSoup(page_text, 'html.parser')
+            post_links = [item.find('a')['href']
+                          for item in page_soup.find_all('div', 'post-item event')]
             await self._q.put(post_links)
 
     def _comments_str(self, comments):
@@ -119,7 +118,7 @@ class Parser:
                     comments_str += self._comments_str(comment['children'])
                 comments_str += f'{comment["user"]["full_name"]}\n{comment["body"]}\n\n'
         return comments_str
-            
+
     async def _fetch_post_data(self, url):
         await asyncio.sleep(PARSING_DELAY)
         post_text = await self._request(url)
