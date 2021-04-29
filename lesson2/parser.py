@@ -12,6 +12,7 @@ from pymongo.errors import PyMongoError
 WORKER_NUM = 10
 PARSING_DELAY = 0.4
 RETRY = 4
+PARSE_CHUNK = 3
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -151,7 +152,14 @@ class Parser:
     async def _worker(self):
         while True:
             post_links = await self._q.get()
-            data = await asyncio.gather(*[self._fetch_post_data(post_link) for post_link in post_links])
+            data = []
+            for idx, item in enumerate(post_links[::PARSE_CHUNK]):
+                parse_links = post_links[idx * PARSE_CHUNK: (idx + 1) * PARSE_CHUNK]
+                if parse_links:
+                    data_links = await asyncio.gather(*[self._fetch_post_data(parse_link)
+                                                        for parse_link in parse_links])
+                    data += data_links
+            self._logger.info(data)
             await self._save_to_database(data)
             self._q.task_done()
 
