@@ -149,13 +149,14 @@ class Parser:
 
     async def _save_to_database(self, data: list):
         session = self.get_session()
+
         for d in data:
-            user_future = await session.execute(
+            users = await session.execute(
                 select(User).
                 filter_by(name=d['user']['name'])
             )
 
-            users = user_future.scalars().all()
+            users = users.scalars().all()
 
             if not users:
                 session.add(User(**d['user']))
@@ -169,7 +170,6 @@ class Parser:
 
         await session.close()
 
-        self._logger.info('Data: %s', d)
         return True
 
     async def _worker(self):
