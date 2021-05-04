@@ -177,6 +177,8 @@ class Parser:
                         session.add(tag_new)
 
                         await session.commit()
+                    else:
+                        tags_append.append(tags[0])
 
             users = await session.execute(
                 select(User).
