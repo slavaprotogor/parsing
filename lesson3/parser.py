@@ -148,7 +148,6 @@ class Parser:
         }
 
     async def _save_to_database(self, data: list):
-        # self._logger.info('DATA: %s', data)
         session = self.get_session()
         for d in data:
             user_future = await session.execute(
@@ -158,7 +157,6 @@ class Parser:
 
             users = user_future.scalars().all()
 
-            self._logger.info('Insert data: %s', users)
             if not users:
                 session.add(User(**d['user']))
 
@@ -187,7 +185,7 @@ class Parser:
                                                         for parse_link in parse_links])
                     data += data_links
 
-            await self._save_to_database(data)
+                await self._save_to_database(data)
             self._q.task_done()
 
     async def _run(self):
