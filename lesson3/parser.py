@@ -19,7 +19,7 @@ from sqlalchemy.orm import sessionmaker
 WORKER_NUM = 10
 PARSING_DELAY = 0.4
 RETRY = 4
-PARSE_CHUNK = 2
+PARSE_CHUNK = 3
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -134,6 +134,9 @@ class Parser:
 
         image = post_soup.find('img')
 
+        user = post_soup.find('div', {'itemprop': 'author'})
+        user_url = user.parent['href']
+
         tags = []
         for t in post_soup.find_all('i', 'i i-tag m-r-xs text-muted text-xs'):
             tags += t['keywords'].split(', ')
@@ -146,8 +149,9 @@ class Parser:
                 'datetime': self._parse_datetime(post_soup.select('.blogpost-date-views time')[0]['datetime']),
             },
             'user': {
-                'name': post_soup.find('div', {'itemprop': 'author'}).text,
-                'url': self._start_url.replace('/posts', post_soup.find('div', {'itemprop': 'author'}).parent['href']),
+                'user_gb_id': user_url.split('/')[-1],
+                'name': user.text,
+                'url': self._start_url.replace('/posts', user_url),
             },
             'comments': comments_dict,
             'tags': tags,
@@ -182,7 +186,7 @@ class Parser:
 
             users = await session.execute(
                 select(User).
-                filter_by(name=d['user']['name'])
+                filter_by(user_gb_id=d['user']['user_gb_id'])
             )
 
             users = users.scalars().all()

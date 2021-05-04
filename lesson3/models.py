@@ -22,7 +22,8 @@ class User(Base):
     }
 
     id = Column(Integer, autoincrement=True, primary_key=True)
-    name = Column(String(120), nullable=False, index=True)
+    user_gb_id = Column(Integer, nullable=False, index=True)
+    name = Column(String(120), nullable=False)
     url = Column(String(120), nullable=False)
 
 
