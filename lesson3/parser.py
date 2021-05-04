@@ -211,7 +211,6 @@ class Parser:
 
             await session.commit()
 
-
         await session.close()
 
         return True
