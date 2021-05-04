@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 import asyncio
 import aiohttp
 
-from models import User, Comment, Post
+from models import User, Comment, Post, Tag
 
 from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -133,6 +133,11 @@ class Parser:
         comments_dict = json.loads(comments_raw)
 
         image = post_soup.find('img')
+
+        tags = []
+        for t in post_soup.find_all('i', 'i i-tag m-r-xs text-muted text-xs'):
+            tags += t['keywords'].split(', ')
+
         return {
             'post': {
                 'url': url,
@@ -145,6 +150,7 @@ class Parser:
                 'url': self._start_url.replace('/posts', post_soup.find('div', {'itemprop': 'author'}).parent['href']),
             },
             'comments': comments_dict,
+            'tags': tags,
         }
 
     async def _save_to_database(self, data: list):
@@ -152,13 +158,33 @@ class Parser:
 
         for d in data:
 
+            tags_append = []
+            if d['tags']:
+                
+                for t in d['tags']:
+                    tags = await session.execute(
+                        select(Tag).
+                        filter_by(name=t)
+                    )
+
+                    tags = tags.scalars().all()
+
+                    tag = None
+                    if not tags:
+                        tag_new = Tag(name=t)
+                        tags_append.append(tag_new)
+
+                        session.add(tag_new)
+
+                        await session.commit()
+
             users = await session.execute(
                 select(User).
                 filter_by(name=d['user']['name'])
             )
 
             users = users.scalars().all()
-            
+
             user = None
             if not users:
                 user = User(**d['user'])
@@ -170,10 +196,15 @@ class Parser:
                 user = users[0]
 
             post_new = Post(**d['post'])
-            post_new.user_id = users[0].id
+            post_new.user_id = user.id
+
+            for tags_a in tags_append:
+                post_new.tags.append(tags_a)
+
             session.add(post_new)
 
             await session.commit()
+
 
         await session.close()
 
