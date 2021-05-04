@@ -130,11 +130,12 @@ class Parser:
         await asyncio.sleep(PARSING_DELAY)
         comments_raw = await self._request(self._comments_url.format(post_id=post_id))
         comments_dict = json.loads(comments_raw)
-
+        post_img = post_soup.select('img:first-child')
+        
         return {
             'url': url,
             'title': post_soup.find('h1', 'blogpost-title').text,
-            'image': post_soup.select('img:first-child')[0]['src'],
+            'image': post_img[0]['src'] if post_img else None,
             'datetime': post_soup.select('.blogpost-date-views time')[0]['datetime'],
             'author': post_soup.find('div', {'itemprop': 'author'}).text,
             'author_url': self._start_url.replace('/posts', post_soup.find('div', {'itemprop': 'author'}).parent['href']),

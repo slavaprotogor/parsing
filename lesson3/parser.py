@@ -6,7 +6,6 @@ from bs4 import BeautifulSoup
 import asyncio
 import aiohttp
 
-from db import get_session
 from models import User, Comment, Post
 
 from sqlalchemy import func
@@ -19,7 +18,7 @@ from sqlalchemy.orm import sessionmaker
 WORKER_NUM = 10
 PARSING_DELAY = 0.4
 RETRY = 4
-PARSE_CHUNK = 3
+PARSE_CHUNK = 2
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
