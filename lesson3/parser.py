@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import datetime
 from bs4 import BeautifulSoup
 
 import asyncio
@@ -86,6 +87,12 @@ class Parser:
     def get_session(self):
         return self._create_session()
 
+    def _parse_datetime(self, dt_str):
+        dt, z = dt_str.split('+')
+        z = z.replace(':', '')
+        dt_obj = datetime.datetime.strptime(f'{dt}+{z}', "%Y-%m-%dT%H:%M:%S%z")
+        return dt_obj
+
     async def _request(self, url):
         retry = 1
         while True:
@@ -131,7 +138,7 @@ class Parser:
                 'url': url,
                 'title': post_soup.find('h1', 'blogpost-title').text,
                 'image': image['src'] if image else None,
-                'datetime': post_soup.select('.blogpost-date-views time')[0]['datetime'],
+                'datetime': self._parse_datetime(post_soup.select('.blogpost-date-views time')[0]['datetime']),
             },
             'user': {
                 'name': post_soup.find('div', {'itemprop': 'author'}).text,
@@ -141,11 +148,30 @@ class Parser:
         }
 
     async def _save_to_database(self, data: list):
-        try:
-            await self._collection.insert_many(data)
-        except PyMongoError as e:
-            self._logger.exception('MongoDB error: %s', e)
-            raise e
+        # self._logger.info('DATA: %s', data)
+        session = self.get_session()
+        for d in data:
+            user_future = await session.execute(
+                select(User).
+                filter_by(name=d['user']['name'])
+            )
+
+            users = user_future.scalars().all()
+
+            self._logger.info('Insert data: %s', users)
+            if not users:
+                session.add(User(**d['user']))
+
+                await session.commit()
+            post_new = Post(**d['post'])
+            post_new.user_id = users[0].id
+            session.add(post_new)
+
+            await session.commit()
+
+        await session.close()
+
+        self._logger.info('Data: %s', d)
         return True
 
     async def _worker(self):
@@ -155,6 +181,7 @@ class Parser:
             data = []
             for idx, item in enumerate(post_links[::PARSE_CHUNK]):
                 parse_links = post_links[idx * PARSE_CHUNK: (idx + 1) * PARSE_CHUNK]
+
                 if parse_links:
                     data_links = await asyncio.gather(*[self._fetch_post_data(parse_link)
                                                         for parse_link in parse_links])
@@ -164,19 +191,12 @@ class Parser:
             self._q.task_done()
 
     async def _run(self):
-        session = self.get_session()
-        users = await session.execute(select(func.count(User.id)))
-        users = users.scalars().one()
+        await self._parse_start(self._start_url)
 
-        await session.commit()
-        self._logger.info('User count: %s', users)
+        await self._q.join()
 
-        # await self._parse_start(self._start_url)
-
-        # await self._q.join()
-
-        # for worker in self._workers:
-        #    worker.cancel()
+        for worker in self._workers:
+            worker.cancel()
 
     def run(self):
         self._logger.info('START')
