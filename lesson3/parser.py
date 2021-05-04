@@ -151,17 +151,24 @@ class Parser:
         session = self.get_session()
 
         for d in data:
+
             users = await session.execute(
                 select(User).
                 filter_by(name=d['user']['name'])
             )
 
             users = users.scalars().all()
-
+            
+            user = None
             if not users:
+                user = User(**d['user'])
+
                 session.add(User(**d['user']))
 
                 await session.commit()
+            else:
+                user = users[0]
+
             post_new = Post(**d['post'])
             post_new.user_id = users[0].id
             session.add(post_new)
