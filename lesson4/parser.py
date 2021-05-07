@@ -1,7 +1,6 @@
 import os
 import json
 import logging
-from bs4 import BeautifulSoup
 from lxml import html
 
 import asyncio
@@ -106,26 +105,24 @@ class Parser:
             page_url = f'{self._start_url}?page={page}'
             page_text = await self._request(page_url)
             page_root= html.fromstring(page_start)
-            post_links = [self._start_url.replace('/posts', item.find('a')['href'])
-                          for item in page_soup.find_all('div', 'post-item event')]
+            post_links = page_root.xpath('//a[contains(@class, "SerpSnippet_name__")]/@href')
             await self._q.put(post_links)
 
     async def _fetch_post_data(self, url):
         await asyncio.sleep(PARSING_DELAY)
-        post_text = await self._request(url)
+        auto_text = await self._request(url)
 
-        post_soup = BeautifulSoup(post_text, 'html.parser')
-        post_id = post_soup.find('div', 'referrals-social-buttons-small-wrapper')['data-minifiable-id']
+        auto_root = html.fromstring(auto_text)
 
         await asyncio.sleep(PARSING_DELAY)
-        image = post_soup.find('img')
+
         return {
-            'url': url,
-            'title': post_soup.find('h1', 'blogpost-title').text,
-            'image': image['src'] if image else None,
-            'datetime': post_soup.select('.blogpost-date-views time')[0]['datetime'],
-            'author': post_soup.find('div', {'itemprop': 'author'}).text,
-            'author_url': self._start_url.replace('/posts', post_soup.find('div', {'itemprop': 'author'}).parent['href']),
+            'url': 'url',
+            'title': 'title',
+            'image': 'image',
+            'datetime': 'datetime',
+            'author': 'author',
+            'author_url': 'author_url',
         }
 
     async def _save_to_database(self, data: list):
