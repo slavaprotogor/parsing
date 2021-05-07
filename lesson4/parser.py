@@ -110,15 +110,6 @@ class Parser:
                           for item in page_soup.find_all('div', 'post-item event')]
             await self._q.put(post_links)
 
-    def _comments_str(self, comments):
-        comments_str = ''
-        for comment_dict in comments:
-            for _, comment in comment_dict.items():
-                if comment['children']:
-                    comments_str += self._comments_str(comment['children'])
-                comments_str += f'{comment["user"]["full_name"]}\n{comment["body"]}\n\n'
-        return comments_str
-
     async def _fetch_post_data(self, url):
         await asyncio.sleep(PARSING_DELAY)
         post_text = await self._request(url)
@@ -127,8 +118,6 @@ class Parser:
         post_id = post_soup.find('div', 'referrals-social-buttons-small-wrapper')['data-minifiable-id']
 
         await asyncio.sleep(PARSING_DELAY)
-        comments_raw = await self._request(self._comments_url.format(post_id=post_id))
-        comments_dict = json.loads(comments_raw)
         image = post_soup.find('img')
         return {
             'url': url,
@@ -137,7 +126,6 @@ class Parser:
             'datetime': post_soup.select('.blogpost-date-views time')[0]['datetime'],
             'author': post_soup.find('div', {'itemprop': 'author'}).text,
             'author_url': self._start_url.replace('/posts', post_soup.find('div', {'itemprop': 'author'}).parent['href']),
-            'comments': self._comments_str(comments_dict),
         }
 
     async def _save_to_database(self, data: list):
