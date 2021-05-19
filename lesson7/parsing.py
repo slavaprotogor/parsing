@@ -20,9 +20,9 @@ driver = webdriver.Chrome('/home/slava/parsing/parsing/lesson8/chromedriver_linu
 driver.get("https://www.instagram.com/")
 time.sleep(2)
 elememt = driver.find_element_by_xpath("//input[@name='username']")
-elememt.send_keys("viacheslavzanin")
+elememt.send_keys("user")
 elememt = driver.find_element_by_xpath("//input[@name='password']")
-elememt.send_keys("slava_123")
+elememt.send_keys("password")
 button = driver.find_element_by_xpath("//button[@type='submit']")
 elememt.click()
 
