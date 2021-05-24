@@ -7,6 +7,10 @@ import scrapy
 
 
 class AvitoItem(scrapy.Item):
-    # define the fields for your item here like:
-    # name = scrapy.Field()
-    pass
+    url = scrapy.Field()
+    title = scrapy.Field()
+    price = scrapy.Field()
+    address = scrapy.Field()
+    parameters = scrapy.Field()
+    author_link = scrapy.Field()
+    author_phone = scrapy.Field()
